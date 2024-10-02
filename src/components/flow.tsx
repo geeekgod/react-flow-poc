@@ -9,7 +9,7 @@ import {
   Connection,
   addEdge,
 } from "@xyflow/react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 const initialNodes: Array<Node> = [
   {
@@ -24,8 +24,38 @@ const initialNodes: Array<Node> = [
 const initialEdges: Array<Edge> = [];
 
 function Flow() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const storedNodes = localStorage.getItem("nodes");
+  const initialNodesState = storedNodes
+    ? JSON.parse(storedNodes)
+    : initialNodes;
+
+  const storedEdges = localStorage.getItem("edges");
+  const initialEdgesState = storedEdges
+    ? JSON.parse(storedEdges)
+    : initialEdges;
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodesState);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdgesState);
+
+  useEffect(() => {
+    const storedNodes = localStorage.getItem("nodes");
+    const storedEdges = localStorage.getItem("edges");
+
+    if (storedNodes) {
+      setNodes(JSON.parse(storedNodes));
+    }
+    if (storedEdges) {
+      setEdges(JSON.parse(storedEdges));
+    }
+  }, [setNodes, setEdges]);
+
+  useEffect(() => {
+    localStorage.setItem("nodes", JSON.stringify(nodes));
+  }, [nodes]);
+
+  useEffect(() => {
+    localStorage.setItem("edges", JSON.stringify(edges));
+  }, [edges]);
 
   const addNode = () => {
     const lastNode = nodes[nodes.length - 1];
@@ -38,6 +68,11 @@ function Flow() {
     setNodes([...nodes, newNode]);
   };
 
+  const clearElements = () => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  };
+
   const onConnect = useCallback(
     (params: Connection) => setEdges((els) => addEdge(params, els)),
     [setEdges]
@@ -45,14 +80,20 @@ function Flow() {
 
   return (
     <div className="h-full">
-      <div className="">
+      <div className="flex-col gap-4">
         <h1 className="text-3xl font-bold text-center">Flow</h1>
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <button
             onClick={addNode}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Add Node
+          </button>
+          <button
+            onClick={clearElements}
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Clear
           </button>
         </div>
       </div>
@@ -60,8 +101,9 @@ function Flow() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          nodesConnectable={true}
-          nodesDraggable={true}
+          nodesConnectable
+          nodesDraggable
+          panOnScroll
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
